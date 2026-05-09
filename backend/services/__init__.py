@@ -8,6 +8,7 @@ from .risk_guardian import RiskGuardian, risk_guardian, RiskConfig
 from .trade_executor import TradeExecutorService, trade_executor, TradeResult
 from .blockchain_client import BlockchainClient, blockchain_client
 from .dwallet_client import DWalletClient, dwallet_client
+from .encrypt_client import EncryptClient, encrypt_client
 
 __all__ = [
     "MarketDataService",
@@ -33,4 +34,6 @@ __all__ = [
     "blockchain_client",
     "DWalletClient",
     "dwallet_client",
+    "EncryptClient",
+    "encrypt_client",
 ]
