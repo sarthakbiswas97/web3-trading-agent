@@ -2,8 +2,14 @@
 members = [
     "programs/*"
 ]
+resolver = "2"
+
+[workspace.dependencies]
+proc-macro2 = "=1.0.98"
 
 [profile.release]
 overflow-checks = true
 lto = "fat"
 codegen-units = 1
+opt-level = "z"
+strip = true
