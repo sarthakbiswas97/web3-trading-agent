@@ -25,11 +25,12 @@ node_modules/
 *.log
 npm-debug.log*
 
-# Hardhat
-contracts/cache/
-contracts/artifacts/
-contracts/typechain-types/
-contracts/deployments-*.json
+# Anchor / Solana
+programs/target/
+target/
+test-ledger/
+.anchor/
+*.so
 
 # ML models (large files)
 ml/models/*.joblib

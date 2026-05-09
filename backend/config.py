@@ -1,7 +1,10 @@
 """Configuration management for VAPM."""
 
-from pydantic_settings import BaseSettings
+from __future__ import annotations
+
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -11,23 +14,22 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5433/vapm"
     redis_url: str = "redis://localhost:6380"
 
-    # Blockchain
-    rpc_url: str = "https://sepolia.base.org"
-    private_key: str = ""
-    etherscan_api_key: str = ""
-    chain_id: int = 84532  # Base Sepolia
+    # Solana
+    solana_rpc_url: str = "https://api.devnet.solana.com"
+    solana_ws_url: str = "wss://api.devnet.solana.com"
+    agent_keypair_path: str = ""
+    decision_program_id: str = ""
+    blockchain_enabled: bool = False
 
-    # Contract Addresses (deployed on Base Sepolia)
-    agent_registry_address: str = ""
-    validation_registry_address: str = ""
-    trade_executor_address: str = ""
+    # Jupiter
+    jupiter_api_url: str = "https://api.jup.ag"
 
-    # Blockchain feature flags
-    blockchain_enabled: bool = False  # Set to True when contracts are deployed
+    # Token Mints (Solana Devnet)
+    sol_mint: str = "So11111111111111111111111111111111111111112"
+    usdc_mint: str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 
     # Market Data
-    binance_api_key: str = ""
-    binance_secret_key: str = ""
+    birdeye_api_key: str = ""
 
     # Agent Config
     agent_name: str = "VAPM-Alpha"
@@ -48,7 +50,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
-        protected_namespaces = ('settings_',)  # Allow model_ prefix
+        protected_namespaces = ('settings_',)
 
 
 @lru_cache()
