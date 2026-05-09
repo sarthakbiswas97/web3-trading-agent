@@ -1,33 +1,35 @@
 # VAPM - Verifiable AI Portfolio Manager
 
-> An autonomous AI trading agent with on-chain verifiable decisions using ERC-8004 concepts.
+> An autonomous AI trading agent with on-chain verifiable decisions on Solana.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
-VAPM is a trustless AI trading system that combines machine learning prediction with blockchain-based verification. Every trading decision is logged, hashed, and stored on-chain, enabling anyone to verify the agent's behavior.
+VAPM is a trustless AI trading system that combines machine learning prediction with blockchain-based verification. Every trading decision is logged, hashed, and stored on-chain via a Solana program, enabling anyone to verify the agent's behavior.
 
 ### Key Features
 
-- **ML-Powered Trading**: XGBoost model predicting ETH/USDC price movements
+- **ML-Powered Trading**: XGBoost model predicting SOL/USDC price movements
 - **Explainable Decisions**: SHAP values reveal why each trade was made
-- **On-Chain Verification**: Decision hashes stored on-chain for transparency
+- **On-Chain Verification**: Decision hashes stored on Solana for transparency
 - **Risk Management**: Hard limits on position size, daily loss, and drawdown
-- **EIP-712 Signed Intents**: Cryptographically secure trade authorization
+- **Jupiter Aggregator**: Best-price execution across all Solana DEXes
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    VAPM System                           │
-├─────────────────────────────────────────────────────────┤
-│  Market Data → Feature Engine → ML Model → Strategy     │
-│                                              ↓           │
-│  Blockchain ← Trade Executor ← Risk Guardian ←          │
-│       ↓                                                  │
-│  Validation Registry (on-chain decision proofs)         │
-└─────────────────────────────────────────────────────────┘
++----------------------------------------------------------+
+|                    VAPM System                            |
++----------------------------------------------------------+
+|  Market Data -> Feature Engine -> ML Model -> Strategy    |
+|       (Birdeye/Jupiter)                       |           |
+|  Solana <- Trade Executor <- Risk Guardian <--+           |
+|    |              |                                       |
+|    |         Jupiter API (swap execution)                 |
+|    v                                                      |
+|  Decision PDA (on-chain hash proofs)                      |
++----------------------------------------------------------+
 ```
 
 ## Tech Stack
@@ -36,8 +38,9 @@ VAPM is a trustless AI trading system that combines machine learning prediction 
 |-------|------------|
 | ML | XGBoost, SHAP, scikit-learn |
 | Backend | Python 3.11, FastAPI |
-| Database | PostgreSQL, Redis |
-| Blockchain | Solidity 0.8, Hardhat |
+| Database | PostgreSQL + TimescaleDB, Redis |
+| Blockchain | Anchor (Rust), solana-py, solders |
+| DEX | Jupiter Aggregator API |
 | Frontend | Next.js 14, Tailwind |
 
 ## Quick Start
@@ -45,9 +48,9 @@ VAPM is a trustless AI trading system that combines machine learning prediction 
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 18+
 - Docker & Docker Compose
-- MetaMask wallet with Base Sepolia ETH
+- Solana CLI + Anchor CLI (for program deployment)
+- Solana Devnet SOL (free via `solana airdrop`)
 
 ### 1. Clone & Setup
 
@@ -55,7 +58,7 @@ VAPM is a trustless AI trading system that combines machine learning prediction 
 git clone https://github.com/yourusername/vapm.git
 cd vapm
 cp .env.example .env
-# Edit .env with your keys
+# Edit .env with your config
 ```
 
 ### 2. Start Infrastructure
@@ -67,52 +70,53 @@ docker-compose up -d postgres redis
 ### 3. Install Dependencies
 
 ```bash
-# Backend
-cd backend
-python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
-
-# Contracts
-cd ../contracts
-npm install
-
-# Frontend
-cd ../frontend
-npm install
 ```
 
-### 4. Deploy Contracts
+### 4. Setup Solana Wallet
 
 ```bash
-cd contracts
-npm run deploy:baseSepolia
+solana-keygen new -o ~/.config/solana/id.json
+solana config set --url devnet
+solana airdrop 2
 ```
 
-### 5. Run the Agent
+### 5. Deploy Solana Program
+
+```bash
+anchor build
+anchor deploy
+# Copy program ID to .env as DECISION_PROGRAM_ID
+```
+
+### 6. Run the Agent
 
 ```bash
 cd backend
 python -m uvicorn main:app --reload
 ```
 
-### 6. Start Dashboard
+## Solana Program
 
-```bash
-cd frontend
-npm run dev
-```
+### vapm_decisions (Anchor/Rust)
 
-## Smart Contracts
+A single on-chain program (~80 lines) that provides:
 
-### AgentRegistry.sol
-ERC-721 based identity registry for AI agents. Each agent gets an NFT representing its on-chain identity and reputation score.
+- **AgentState PDA**: Agent identity with name and decision counter
+- **DecisionRecord PDA**: SHA256 hash, model confidence, risk score, execution status
+- **Instructions**: `initialize_agent`, `log_decision`, `mark_executed`
 
-### ValidationRegistry.sol
-Stores SHA256 hashes of decision records. Enables verification that the agent made decisions as claimed.
+Decision hashes are stored on-chain; full decision data stays off-chain in PostgreSQL.
 
-### TradeExecutor.sol
-Executes EIP-712 signed trade intents via Uniswap V3. Validates signatures and enforces basic limits.
+## Trade Execution
+
+Trades are executed via Jupiter Aggregator API:
+1. Agent calls Jupiter `/order` endpoint with swap parameters
+2. Jupiter returns an assembled transaction
+3. Agent signs with Ed25519 keypair and submits via `/execute`
+4. Jupiter handles routing across all Solana DEXes for best price
+
+No on-chain swap code needed.
 
 ## Decision Transparency
 
@@ -120,9 +124,9 @@ Every trade generates a Decision Record:
 
 ```json
 {
-  "timestamp": "2026-03-20T14:02:00Z",
+  "timestamp": "2026-05-10T14:02:00Z",
   "market_state": {
-    "price": 3245.50,
+    "price": 165.50,
     "rsi": 28.4,
     "volatility": 0.032
   },
@@ -141,7 +145,7 @@ Every trade generates a Decision Record:
 }
 ```
 
-The hash of this record is stored on-chain, enabling verification.
+The SHA256 hash of this record is stored on-chain via the Anchor program.
 
 ## Risk Management
 
@@ -157,46 +161,34 @@ Hard limits that cannot be bypassed:
 ## API Endpoints
 
 ```
-GET  /health              # System health
-GET  /agent/status        # Agent state, PnL
-GET  /decisions           # Decision history
-GET  /decisions/{id}      # Decision with SHAP
-GET  /trades              # Trade history
-GET  /risk/snapshot       # Current risk state
-POST /agent/start         # Start trading
-POST /agent/stop          # Stop trading
+GET  /health                 # System health
+GET  /agent/status           # Agent state, PnL
+GET  /market/price           # Current SOL/USDC price
+GET  /market/candles         # OHLCV candles
+GET  /predict                # ML prediction with SHAP
+GET  /trades/position        # Current position
+GET  /trades/history         # Trade history
+GET  /risk/state             # Risk metrics
+GET  /agent/onchain          # Solana identity and decisions
+POST /agent/register         # Register agent on-chain
+GET  /verify/{decision_id}   # Verify decision hash
 ```
 
 ## Project Structure
 
 ```
 vapm/
-├── contracts/           # Solidity smart contracts
-├── backend/            # Python FastAPI backend
-│   ├── models/         # Pydantic data models
-│   ├── services/       # Business logic
-│   └── api/            # REST endpoints
-├── ml/                 # ML training & inference
-├── frontend/           # Next.js dashboard
-└── docs/               # Documentation
++-- programs/             # Anchor/Rust Solana program
+|   +-- vapm_decisions/   # Decision hash storage
++-- backend/              # Python FastAPI backend
+|   +-- models/           # Pydantic data models
+|   +-- services/         # Business logic
+|   +-- core/             # Technical indicators
+|   +-- db/               # PostgreSQL models
+|   +-- events/           # Redis pub/sub
++-- ml/                   # ML training & inference
++-- frontend/             # Next.js dashboard
 ```
-
-## Performance Metrics
-
-- **Sharpe Ratio**: Risk-adjusted return
-- **Max Drawdown**: Worst peak-to-trough decline
-- **Win Rate**: Percentage of profitable trades
-- **Validation Score**: Decision verification success rate
-
-## Roadmap
-
-- [ ] Core trading pipeline
-- [ ] ML model training
-- [ ] Risk guardian
-- [ ] Smart contract deployment
-- [ ] Decision logging
-- [ ] Dashboard UI
-- [ ] Demo video
 
 ## License
 
@@ -204,4 +196,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-Built for the AI Trading Agents with ERC-8004 Hackathon.
+Built for the Frontier Hackathon on Superteam Earn.

@@ -12,7 +12,7 @@ class Candle(Base):
     __tablename__ = "candles"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    symbol = Column(String(20), nullable=False)  # e.g., "ETHUSDC"
+    symbol = Column(String(20), nullable=False)  # e.g., "SOLUSDC"
     interval = Column(String(10), nullable=False)  # e.g., "1m", "5m"
 
     open_time = Column(BigInteger, nullable=False)  # Unix timestamp ms
@@ -43,7 +43,7 @@ class Trade(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     symbol = Column(String(20), nullable=False)
 
-    trade_id = Column(BigInteger, nullable=False)  # Binance trade ID
+    trade_id = Column(BigInteger, nullable=False)  # Exchange trade ID
     price = Column(Float, nullable=False)
     quantity = Column(Float, nullable=False)
     timestamp = Column(BigInteger, nullable=False)  # Unix timestamp ms
@@ -114,8 +114,8 @@ class TradeExecution(Base):
     value_usd = Column(Float, nullable=False)
 
     status = Column(String(20), default="pending")
-    tx_hash = Column(String(66))
-    gas_used = Column(BigInteger)
+    tx_hash = Column(String(100))
+    slot = Column(BigInteger)
     slippage_bps = Column(Float)
 
     error_message = Column(String(500))

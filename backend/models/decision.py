@@ -56,7 +56,7 @@ class DecisionRecord(BaseModel):
     """Complete decision record for transparency."""
     id: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    asset: str = "ETH/USDC"
+    asset: str = "SOL/USDC"
 
     market_state: MarketState
     model_output: ModelOutput

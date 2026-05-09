@@ -135,7 +135,7 @@ class TradeExecutorService:
 
         # Log result
         if result.success:
-            print(f"  -> {result.action}: {result.amount:.6f} ETH @ ${result.price:.2f}")
+            print(f"  -> {result.action}: {result.amount:.6f} SOL @ ${result.price:.2f}")
             if result.pnl is not None:
                 print(f"     PnL: ${result.pnl:.2f}")
         else:
@@ -309,7 +309,7 @@ class TradeExecutorService:
         decision = DecisionRecord(
             id=decision_id,
             timestamp=datetime.now(timezone.utc),
-            asset="ETH/USDC",
+            asset="SOL/USDC",
             market_state=market_state,
             model_output=model_output,
             strategy_decision=strategy_decision,
@@ -357,7 +357,8 @@ class TradeExecutorService:
 
                 if result.success:
                     validation_tx_hash = result.tx_hash
-                    print(f"  [Chain] Decision logged: {result.tx_hash[:16]}...")
+                    tx_display = result.tx_hash[:16] if result.tx_hash else "local"
+                    print(f"  [Chain] Decision logged: {tx_display}...")
                 else:
                     print(f"  [Chain] Log failed: {result.error}")
             except Exception as e:
@@ -465,7 +466,8 @@ class TradeExecutorService:
             try:
                 mark_result = await blockchain_client.mark_executed(decision.id)
                 if mark_result.success:
-                    print(f"  [Chain] Marked executed: {mark_result.tx_hash[:16]}...")
+                    tx_display = mark_result.tx_hash[:16] if mark_result.tx_hash else "local"
+                    print(f"  [Chain] Marked executed: {tx_display}...")
                 else:
                     print(f"  [Chain] Mark failed: {mark_result.error}")
             except Exception as e:
@@ -537,7 +539,7 @@ class TradeExecutorService:
                     id=trade_id,
                     decision_id=decision.id,
                     timestamp=timestamp,
-                    asset="ETH",
+                    asset="SOL",
                     action=action,
                     amount=amount,
                     price=price,

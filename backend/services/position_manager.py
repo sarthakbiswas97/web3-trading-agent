@@ -26,7 +26,7 @@ from db.models import CapitalSnapshot
 class PositionState:
     """Current position state."""
     id: str = ""
-    asset: str = "ETH"
+    asset: str = "SOL"
     side: str = ""  # "LONG" or empty
     size: float = 0.0  # Amount of asset
     entry_price: float = 0.0
@@ -118,7 +118,7 @@ class PositionManager:
 
         self._position = PositionState(
             id=str(uuid.uuid4()),
-            asset="ETH",
+            asset="SOL",
             side=side,
             size=size,
             entry_price=entry_price,
@@ -245,7 +245,7 @@ class PositionManager:
             position_pct: Percentage of capital to use (default 3%)
 
         Returns:
-            Size in asset units (e.g., ETH)
+            Size in asset units (e.g., SOL)
         """
         value_usd = self.capital * position_pct
         size = value_usd / price
