@@ -23,11 +23,12 @@ export function useVAPMData(): VAPMData {
     executor: null,
     prediction: null,
     onchain: null,
+    live: null,
     connected: false,
   });
 
   const poll = useCallback(async () => {
-    const [agent, dwallet, encrypt, executor, prediction, onchain] =
+    const [agent, dwallet, encrypt, executor, prediction, onchain, live] =
       await Promise.all([
         fetchJSON(`${API}/agent/status`),
         fetchJSON(`${API}/agent/dwallet`),
@@ -35,6 +36,7 @@ export function useVAPMData(): VAPMData {
         fetchJSON(`${API}/trades/status`),
         fetchJSON(`${API}/predict`),
         fetchJSON(`${API}/agent/onchain`),
+        fetchJSON(`${API}/agent/live`),
       ]);
 
     setData({
@@ -44,6 +46,7 @@ export function useVAPMData(): VAPMData {
       executor: executor as VAPMData["executor"],
       prediction: prediction as VAPMData["prediction"],
       onchain: onchain as VAPMData["onchain"],
+      live: live as VAPMData["live"],
       connected: agent !== null,
     });
   }, []);

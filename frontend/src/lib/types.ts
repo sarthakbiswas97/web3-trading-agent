@@ -85,6 +85,44 @@ export interface OnchainStatus {
   } | null;
 }
 
+export interface LiveTrade {
+  pda: string;
+  explorer: string;
+  index: number;
+  verdict: string;
+  verdict_code: number;
+  message_hash: string;
+  enc_position: string;
+  enc_pnl: string;
+  enc_drawdown: string;
+  fhe_pos_ok: string;
+  fhe_pnl_ok: string;
+  fhe_dd_ok: string;
+  timestamp: number;
+}
+
+export interface LiveOnChainData {
+  program_id: string | null;
+  program_explorer: string | null;
+  agent: {
+    pda: string;
+    explorer: string;
+    authority: string;
+    name: string;
+    decision_count: number;
+    dwallet: string;
+    dwallet_explorer: string;
+    enc_max_position: string;
+    enc_max_daily_loss: string;
+    enc_max_drawdown: string;
+    trades_approved: number;
+    trades_rejected: number;
+  } | null;
+  trades: LiveTrade[];
+  ika_program: string;
+  encrypt_program: string;
+}
+
 export interface VAPMData {
   agent: AgentStatus | null;
   dwallet: DWalletStatus | null;
@@ -92,5 +130,6 @@ export interface VAPMData {
   executor: ExecutorStatus | null;
   prediction: PredictionResponse | null;
   onchain: OnchainStatus | null;
+  live: LiveOnChainData | null;
   connected: boolean;
 }

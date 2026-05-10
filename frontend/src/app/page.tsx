@@ -41,15 +41,46 @@ export default function Dashboard() {
         <EncryptCard
           encrypt={data.encrypt}
           prediction={data.prediction}
+          live={data.live}
         />
         <DWalletCard
           dwallet={data.dwallet}
           executor={data.executor}
+          live={data.live}
         />
       </div>
 
       {/* Zone 5: Activity Feed */}
       <ActivityFeed executor={data.executor} />
+
+      {/* On-chain verification links */}
+      {data.live?.agent && (
+        <div className="mt-6 p-4 bg-gray-900 rounded-2xl border border-gray-800">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Verify on Solana Explorer
+          </h3>
+          <div className="flex flex-wrap gap-3 text-xs">
+            <a href={data.live.program_explorer ?? "#"} target="_blank" rel="noopener noreferrer"
+               className="text-gray-400 hover:text-white underline decoration-dotted">
+              Program
+            </a>
+            <a href={data.live.agent.explorer} target="_blank" rel="noopener noreferrer"
+               className="text-violet-400 hover:text-violet-300 underline decoration-dotted">
+              Agent PDA
+            </a>
+            <a href={data.live.agent.dwallet_explorer} target="_blank" rel="noopener noreferrer"
+               className="text-violet-400 hover:text-violet-300 underline decoration-dotted">
+              dWallet
+            </a>
+            {data.live.trades.map((t, i) => (
+              <a key={i} href={t.explorer} target="_blank" rel="noopener noreferrer"
+                 className={`underline decoration-dotted ${t.verdict_code === 1 ? "text-emerald-400" : t.verdict_code === 2 ? "text-red-400" : "text-gray-400"}`}>
+                Trade #{t.index} ({t.verdict})
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Connection status */}
       {!data.connected && (
