@@ -1,7 +1,8 @@
 [workspace]
 members = [
-    "programs/*"
+    "programs/*",
 ]
+exclude = ["e2e-ika", "e2e-encrypt"]
 resolver = "2"
 
 [workspace.dependencies]
