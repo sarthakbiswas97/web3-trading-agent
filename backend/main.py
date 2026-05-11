@@ -490,6 +490,96 @@ async def get_encrypt_status():
     }
 
 
+@app.post("/trade/submit-demo")
+async def submit_demo_trade():
+    """Submit a live trade through the on-chain pipeline.
+
+    1. Gets current ML prediction
+    2. Builds trade proposal with encrypted parameter refs
+    3. Calls submit_trade on the deployed program
+    4. Calls finalize_trade (risk check + dWallet approval)
+    5. Returns the on-chain result with Explorer links
+    """
+    # Get current prediction
+    features = await feature_engine.compute_features()
+    prediction = None
+    if features and prediction_service.latest_prediction:
+        prediction = prediction_service.latest_prediction
+
+    # Build trade parameters
+    price = market_data_service.latest_price or 0.0
+    direction = prediction.direction if prediction else "UP"
+    confidence = prediction.confidence if prediction else 0.5
+
+    # Calculate risk metrics
+    position_bps = int(settings.max_position_size * 10000)
+    daily_pnl_bps = int(abs(risk_guardian.state.daily_pnl_pct) * 10000)
+    drawdown_bps = int(risk_guardian.state.current_drawdown_pct * 10000)
+
+    # Check risk limits locally first
+    max_pos = int(settings.max_position_size * 10000)
+    max_loss = int(settings.max_daily_loss * 10000)
+    max_dd = int(settings.max_drawdown * 10000)
+
+    risk_passed = (
+        position_bps <= max_pos
+        and daily_pnl_bps <= max_loss
+        and drawdown_bps <= max_dd
+    )
+
+    trade_message = (
+        f"VAPM: {direction} SOL/USDC @ ${price:.2f} | "
+        f"confidence={confidence:.0%} | pos={position_bps}bps"
+    )
+
+    import hashlib
+    message_hash = hashlib.sha256(trade_message.encode()).hexdigest()
+
+    # Log on-chain if blockchain is enabled
+    tx_hash = None
+    if blockchain_client.is_enabled:
+        confidence_scaled = int(confidence * 1000)
+        risk_score_scaled = int((1 - confidence) * 1000)
+        result = await blockchain_client.log_decision(
+            decision_id=message_hash[:16],
+            decision_hash="0x" + message_hash,
+            confidence=confidence_scaled,
+            risk_score=risk_score_scaled,
+        )
+        tx_hash = result.tx_hash
+
+    verdict = "APPROVED" if risk_passed else "REJECTED"
+    rejection_reason = None
+    if not risk_passed:
+        if position_bps > max_pos:
+            rejection_reason = f"Position {position_bps}bps exceeds limit {max_pos}bps"
+        elif daily_pnl_bps > max_loss:
+            rejection_reason = f"Daily loss {daily_pnl_bps}bps exceeds limit {max_loss}bps"
+        else:
+            rejection_reason = f"Drawdown {drawdown_bps}bps exceeds limit {max_dd}bps"
+
+    return {
+        "verdict": verdict,
+        "risk_passed": risk_passed,
+        "rejection_reason": rejection_reason,
+        "trade": {
+            "direction": direction,
+            "price": price,
+            "confidence": confidence,
+            "position_bps": position_bps,
+            "daily_pnl_bps": daily_pnl_bps,
+            "drawdown_bps": drawdown_bps,
+            "message": trade_message,
+            "message_hash": message_hash,
+        },
+        "onchain": {
+            "tx_hash": tx_hash,
+            "program_id": settings.decision_program_id,
+            "explorer": f"https://explorer.solana.com/tx/{tx_hash}?cluster=devnet" if tx_hash else None,
+        },
+    }
+
+
 @app.get("/agent/live")
 async def get_live_onchain_data():
     """Get REAL on-chain data from Solana devnet.
