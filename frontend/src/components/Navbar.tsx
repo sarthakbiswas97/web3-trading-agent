@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/analytics", label: "Analytics" },
   { href: "/model", label: "Model" },
+  { href: "/presentation", label: "Pitch" },
 ] as const;
 
 export default function Navbar() {
