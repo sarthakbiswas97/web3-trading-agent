@@ -69,4 +69,4 @@ ARCHITECTURE.md
 *.claude
 .claude/
 .claude.json
-.claude.json.backup*
+.claude.json.backup*docs/
