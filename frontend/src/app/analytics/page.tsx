@@ -62,6 +62,7 @@ function StatCard({
     amber: "text-amber-400",
     white: "text-white",
     cyan: "text-cyan-400",
+    gray: "text-gray-500",
   };
   return (
     <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
@@ -114,14 +115,65 @@ export default function AnalyticsPage() {
   if (error || !data) {
     return (
       <main className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-white mb-6">Analytics</h1>
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 text-center">
-          <p className="text-gray-500 text-sm mb-2">
-            {error ?? "No backtest data available"}
-          </p>
-          <p className="text-gray-600 text-xs">
-            Run the backtest first: cd backend && python -m ml.backtest
-          </p>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-white">Analytics</h1>
+          <p className="text-xs text-gray-500 mt-1">Backtest results and performance metrics</p>
+        </div>
+
+        {/* Demo stat cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <StatCard label="Total Return" value="--" color="gray" />
+          <StatCard label="Sharpe Ratio" value="--" color="gray" />
+          <StatCard label="Win Rate" value="--" color="gray" />
+          <StatCard label="Max Drawdown" value="--" color="gray" />
+          <StatCard label="Trade Count" value="--" color="gray" />
+        </div>
+
+        {/* PnL chart placeholder */}
+        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-6">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Cumulative PnL
+          </h2>
+          <div className="h-[350px] flex flex-col items-center justify-center gap-3">
+            <svg viewBox="0 0 400 120" className="w-full max-w-md opacity-15" preserveAspectRatio="none">
+              <polyline
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="2"
+                points="0,100 40,95 80,85 120,70 160,75 200,55 240,60 280,40 320,45 360,30 400,20"
+              />
+            </svg>
+            <p className="text-sm text-gray-600">
+              Backtest PnL curve appears here after running the backtest
+            </p>
+            <code className="text-[10px] text-gray-700 bg-gray-800 px-3 py-1 rounded-lg">
+              cd backend && python -m ml.backtest
+            </code>
+          </div>
+        </div>
+
+        {/* Explanation cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+            <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">
+              Backtest Engine
+            </h2>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              The backtest replays historical SOL/USDC data through the full trading pipeline:
+              XGBoost predictions, risk limit checks, and simulated trade execution.
+              Results include per-trade PnL, cumulative returns, Sharpe ratio, and drawdown analysis.
+            </p>
+          </div>
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+            <h2 className="text-xs font-semibold text-violet-400 uppercase tracking-wider mb-3">
+              Model Comparison
+            </h2>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Multiple model configurations are evaluated side-by-side with accuracy, precision,
+              recall, and F1 metrics. The best-performing model is automatically selected
+              for live trading. Results appear in the table below when data is available.
+            </p>
+          </div>
         </div>
       </main>
     );

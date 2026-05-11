@@ -11,6 +11,9 @@ export default function EncryptCard({
   const trades = live?.trades ?? [];
   const lastTrade = trades.length > 0 ? trades[trades.length - 1] : null;
 
+  // Show card even when disconnected -- with explanatory content
+  const connected = !!encrypt;
+
   return (
     <div className="bg-gray-900 rounded-2xl border border-cyan-500/20 p-5">
       <div className="flex items-center justify-between mb-4">
@@ -23,50 +26,78 @@ export default function EncryptCard({
         </span>
       </div>
 
-      {/* Encrypted values visualization */}
-      <div className="space-y-2 mb-4">
-        {lastTrade ? (
-          <>
-            <div className="text-[10px] text-gray-500 uppercase mb-1">Latest Trade -- Encrypted Parameters</div>
-            <EncRow label="position_size" plaintext="***" ct={lastTrade.enc_position} />
-            <EncRow label="daily_pnl" plaintext="***" ct={lastTrade.enc_pnl} />
-            <EncRow label="drawdown" plaintext="***" ct={lastTrade.enc_drawdown} />
-          </>
-        ) : (
-          <>
-            <div className="text-[10px] text-gray-500 uppercase mb-1">Risk Limits -- Encrypted On-Chain</div>
-            <EncRow label="max_position" plaintext="***" ct={agent?.enc_max_position} />
-            <EncRow label="max_daily_loss" plaintext="***" ct={agent?.enc_max_daily_loss} />
-            <EncRow label="max_drawdown" plaintext="***" ct={agent?.enc_max_drawdown} />
-          </>
-        )}
-      </div>
-
-      {/* FHE computation results */}
-      {lastTrade && lastTrade.fhe_pos_ok !== "11111111111111111111111111111111" && (
-        <div className="p-2.5 bg-cyan-500/5 rounded-lg border border-cyan-500/10 mb-3">
-          <div className="text-[10px] text-cyan-300 font-semibold mb-1">FHE Risk Check Results</div>
-          <div className="space-y-1 text-[10px]">
-            <FheResult label="position <= max" ct={lastTrade.fhe_pos_ok} />
-            <FheResult label="daily_pnl <= max" ct={lastTrade.fhe_pnl_ok} />
-            <FheResult label="drawdown <= max" ct={lastTrade.fhe_dd_ok} />
+      {connected ? (
+        <>
+          {/* Encrypted values visualization */}
+          <div className="space-y-2 mb-4">
+            {lastTrade ? (
+              <>
+                <div className="text-[10px] text-gray-500 uppercase mb-1">Latest Trade -- Encrypted Parameters</div>
+                <EncRow label="position_size" plaintext="***" ct={lastTrade.enc_position} />
+                <EncRow label="daily_pnl" plaintext="***" ct={lastTrade.enc_pnl} />
+                <EncRow label="drawdown" plaintext="***" ct={lastTrade.enc_drawdown} />
+              </>
+            ) : (
+              <>
+                <div className="text-[10px] text-gray-500 uppercase mb-1">Risk Limits -- Encrypted On-Chain</div>
+                <EncRow label="max_position" plaintext="***" ct={agent?.enc_max_position} />
+                <EncRow label="max_daily_loss" plaintext="***" ct={agent?.enc_max_daily_loss} />
+                <EncRow label="max_drawdown" plaintext="***" ct={agent?.enc_max_drawdown} />
+              </>
+            )}
           </div>
-        </div>
-      )}
 
-      {/* Stats */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-800">
-        <div>
-          <span className="text-2xl font-bold text-white">{agent?.decision_count ?? 0}</span>
-          <span className="text-xs text-gray-500 ml-1.5">proposals</span>
-        </div>
-        <div className="text-right">
-          <div className="text-[10px] text-gray-600">Encrypt Program</div>
-          <code className="text-[10px] text-cyan-500/70">
-            {live?.encrypt_program ? live.encrypt_program.slice(0, 8) + "..." : "---"}
-          </code>
-        </div>
-      </div>
+          {/* FHE computation results */}
+          {lastTrade && lastTrade.fhe_pos_ok !== "11111111111111111111111111111111" && (
+            <div className="p-2.5 bg-cyan-500/5 rounded-lg border border-cyan-500/10 mb-3">
+              <div className="text-[10px] text-cyan-300 font-semibold mb-1">FHE Risk Check Results</div>
+              <div className="space-y-1 text-[10px]">
+                <FheResult label="position <= max" ct={lastTrade.fhe_pos_ok} />
+                <FheResult label="daily_pnl <= max" ct={lastTrade.fhe_pnl_ok} />
+                <FheResult label="drawdown <= max" ct={lastTrade.fhe_dd_ok} />
+              </div>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div className="flex items-center justify-between pt-3 border-t border-gray-800">
+            <div>
+              <span className="text-2xl font-bold text-white">{agent?.decision_count ?? 0}</span>
+              <span className="text-xs text-gray-500 ml-1.5">proposals</span>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] text-gray-600">Encrypt Program</div>
+              <code className="text-[10px] text-cyan-500/70">
+                {live?.encrypt_program ? live.encrypt_program.slice(0, 8) + "..." : "---"}
+              </code>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Disconnected state: explain what Encrypt does */
+        <>
+          <div className="space-y-2 mb-4">
+            <div className="text-[10px] text-gray-500 uppercase mb-1">How Encrypt FHE Works</div>
+            <EncRow label="confidence" plaintext="0.73" ct="Enc(0x3a7f...)" />
+            <EncRow label="position_bps" plaintext="350" ct="Enc(0x8b2c...)" />
+            <EncRow label="drawdown_pct" plaintext="1.2" ct="Enc(0xd1e9...)" />
+          </div>
+          <p className="text-xs text-gray-500 leading-relaxed mb-4">
+            Trading signals are encrypted before on-chain storage using fully homomorphic encryption.
+            Risk checks run on ciphertexts -- the program verifies limits without ever seeing plaintext values.
+          </p>
+          <div className="flex items-center justify-between pt-3 border-t border-gray-800">
+            <div>
+              <span className="text-2xl font-bold text-gray-600">--</span>
+              <span className="text-xs text-gray-600 ml-1.5">proposals</span>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] text-gray-600">Encrypt Program</div>
+              <code className="text-[10px] text-gray-600">Awaiting connection</code>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

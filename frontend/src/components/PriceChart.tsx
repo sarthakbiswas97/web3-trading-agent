@@ -24,7 +24,7 @@ export default function PriceChart() {
     try {
       const res = await fetch(`${API}/market/candles?limit=100`);
       if (!res.ok) {
-        setError("Failed to load candle data");
+        setError("Chart data unavailable");
         return null;
       }
       const data = await res.json();
@@ -139,10 +139,10 @@ export default function PriceChart() {
     <div className="mb-6 bg-gray-900 rounded-2xl border border-gray-800 p-5">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Price Chart
+          SOL/USDC Price
         </h2>
         <span className="text-[10px] text-gray-600">
-          Auto-updates every 10s
+          {error ? "Waiting for backend" : "Auto-updates every 10s"}
         </span>
       </div>
 
@@ -153,8 +153,22 @@ export default function PriceChart() {
       )}
 
       {error && (
-        <div className="h-[300px] flex items-center justify-center text-sm text-gray-600">
-          {error} -- chart will load when backend is available
+        <div className="h-[300px] flex flex-col items-center justify-center gap-3">
+          {/* Decorative static chart placeholder */}
+          <svg viewBox="0 0 400 120" className="w-full max-w-md opacity-20" preserveAspectRatio="none">
+            <polyline
+              fill="none"
+              stroke="#f59e0b"
+              strokeWidth="2"
+              points="0,80 30,75 60,60 90,65 120,45 150,50 180,30 210,35 240,25 270,40 300,20 330,35 360,15 400,25"
+            />
+          </svg>
+          <p className="text-sm text-gray-600">
+            Live SOL/USDC chart appears here when the backend is running
+          </p>
+          <p className="text-[10px] text-gray-700">
+            Powered by Birdeye market data with TradingView Lightweight Charts
+          </p>
         </div>
       )}
 

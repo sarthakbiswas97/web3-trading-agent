@@ -14,6 +14,31 @@ interface ModelInfo {
   feature_importance?: Record<string, number>;
 }
 
+// Demo SHAP data to show when backend is disconnected
+const DEMO_SHAP: Record<string, { value: number; impact: string }> = {
+  rsi_14: { value: 0.0823, impact: "positive" },
+  macd_signal: { value: -0.0612, impact: "negative" },
+  volume_sma_ratio: { value: 0.0445, impact: "positive" },
+  bb_width: { value: -0.0389, impact: "negative" },
+  price_momentum_5: { value: 0.0312, impact: "positive" },
+  atr_14: { value: -0.0267, impact: "negative" },
+  ema_cross_12_26: { value: 0.0198, impact: "positive" },
+  obv_slope: { value: 0.0156, impact: "positive" },
+};
+
+const DEMO_IMPORTANCE: [string, number][] = [
+  ["rsi_14", 0.1432],
+  ["macd_signal", 0.1187],
+  ["volume_sma_ratio", 0.0934],
+  ["bb_width", 0.0821],
+  ["price_momentum_5", 0.0756],
+  ["atr_14", 0.0689],
+  ["ema_cross_12_26", 0.0612],
+  ["obv_slope", 0.0534],
+  ["stoch_k", 0.0467],
+  ["adx_14", 0.0398],
+];
+
 export default function ModelPage() {
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
@@ -53,6 +78,7 @@ export default function ModelPage() {
     );
   }
 
+  const connected = !!prediction || !!modelInfo;
   const pred = prediction?.prediction;
   const shap = pred?.shap_explanation;
 
@@ -68,23 +94,20 @@ export default function ModelPage() {
       ? Math.max(...sortedImportance.map(([, v]) => v))
       : 0;
 
+  // Demo importance for disconnected state
+  const displayImportance = sortedImportance.length > 0 ? sortedImportance : (connected ? [] : DEMO_IMPORTANCE);
+  const displayMaxImportance = displayImportance.length > 0
+    ? Math.max(...displayImportance.map(([, v]) => v))
+    : 0;
+
   return (
     <main className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Model</h1>
         <p className="text-xs text-gray-500 mt-1">
-          Prediction details and SHAP explanations
+          {connected ? "Prediction details and SHAP explanations" : "XGBoost prediction model with SHAP explainability"}
         </p>
       </div>
-
-      {error && !prediction && !modelInfo && (
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 text-center">
-          <p className="text-gray-500 text-sm mb-2">{error}</p>
-          <p className="text-gray-600 text-xs">
-            Start the backend: cd backend && uvicorn main:app --port 8001
-          </p>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
         {/* Current Prediction */}
@@ -147,9 +170,36 @@ export default function ModelPage() {
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-600 text-sm">
-              No prediction available. The model will generate predictions when
-              market data is loaded.
+            /* Disconnected prediction preview */
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 opacity-50">
+                  {"\u2191"}
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-gray-500">UP</div>
+                  <div className="text-sm text-gray-600">73.2% confidence</div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between mb-1 text-xs text-gray-600">
+                  <span>P(DOWN)</span>
+                  <span>P(UP)</span>
+                </div>
+                <div className="h-3 bg-gray-800 rounded-full overflow-hidden flex opacity-40">
+                  <div className="h-full bg-red-500" style={{ width: "26.8%" }} />
+                  <div className="h-full bg-emerald-500" style={{ width: "73.2%" }} />
+                </div>
+                <div className="flex justify-between mt-1 text-xs font-mono text-gray-600">
+                  <span>26.8%</span>
+                  <span>73.2%</span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-gray-800">
+                <p className="text-[10px] text-gray-600">
+                  Demo preview -- live predictions appear when the backend is running
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -178,8 +228,18 @@ export default function ModelPage() {
               />
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-600 text-sm">
-              Model info unavailable. Check the /predict/model endpoint.
+            <div className="space-y-3">
+              <InfoRow label="Name" value="XGBoost Classifier" color="text-gray-500" />
+              <InfoRow label="Version" value="v3 (latest)" color="text-gray-500" />
+              <InfoRow label="Accuracy" value="~62%" color="text-gray-500" />
+              <InfoRow label="Features" value="23 technical indicators" color="text-gray-500" />
+              <div className="pt-3 border-t border-gray-800/50">
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  The model uses 23 technical features (RSI, MACD, Bollinger Bands, volume ratios, etc.)
+                  to predict short-term SOL/USDC price direction.
+                  SHAP values explain each prediction.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -187,24 +247,38 @@ export default function ModelPage() {
 
       {/* SHAP Explanation */}
       <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-6">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          SHAP Feature Explanation
-        </h2>
-        <ShapChart shapExplanation={shap ?? null} maxFeatures={10} />
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            SHAP Feature Explanation
+          </h2>
+          {!shap && !connected && (
+            <span className="text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">
+              Demo data
+            </span>
+          )}
+        </div>
+        <ShapChart shapExplanation={shap ?? (connected ? null : DEMO_SHAP)} maxFeatures={10} />
       </div>
 
       {/* Feature Importance */}
-      {sortedImportance.length > 0 && (
+      {displayImportance.length > 0 && (
         <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Feature Importance (Global)
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Feature Importance (Global)
+            </h2>
+            {!connected && (
+              <span className="text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">
+                Demo data
+              </span>
+            )}
+          </div>
           <div className="space-y-2">
-            {sortedImportance.map(([feature, importance]) => {
+            {displayImportance.map(([feature, importance]) => {
               const barWidth =
-                maxImportance > 0 ? (importance / maxImportance) * 100 : 0;
+                displayMaxImportance > 0 ? (importance / displayMaxImportance) * 100 : 0;
               return (
-                <div key={feature}>
+                <div key={feature} className={!connected ? "opacity-60" : ""}>
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-xs font-mono text-gray-300 truncate">
                       {feature}

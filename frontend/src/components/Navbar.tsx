@@ -20,9 +20,9 @@ export default function Navbar() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 via-cyan-500 to-violet-500 flex items-center justify-center">
             <span className="text-xs font-bold text-white leading-none">V</span>
           </div>
-          <div>
+          <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-white tracking-tight">VAPM</span>
-            <span className="hidden sm:inline text-xs text-gray-500 ml-1.5">Verifiable AI Portfolio Manager</span>
+            <span className="hidden sm:inline text-xs text-gray-500">Verifiable AI Portfolio Manager</span>
           </div>
         </Link>
 
@@ -48,6 +48,9 @@ export default function Navbar() {
               </Link>
             );
           })}
+          <span className="ml-3 hidden sm:inline-flex text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full ring-1 ring-amber-500/30">
+            Encrypt + Ika Track
+          </span>
         </div>
       </div>
     </nav>

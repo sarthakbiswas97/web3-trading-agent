@@ -38,8 +38,8 @@ export default function DWalletCard({
   executor: ExecutorStatus | null;
   live: LiveOnChainData | null;
 }) {
-  if (!dwallet) return null;
-  const limits = dwallet.risk_limits;
+  const connected = !!dwallet;
+  const limits = dwallet?.risk_limits;
   const agent = live?.agent;
 
   return (
@@ -54,55 +54,72 @@ export default function DWalletCard({
         </span>
       </div>
 
-      {agent ? (
+      {connected ? (
         <>
-          {/* Real on-chain data */}
-          <div className="space-y-2 mb-3">
-            <div className="flex justify-between items-center py-1.5 border-b border-gray-800/50">
-              <span className="text-xs text-gray-400">dWallet</span>
-              <ExplorerLink pubkey={agent.dwallet} />
+          {agent ? (
+            <>
+              {/* Real on-chain data */}
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-800/50">
+                  <span className="text-xs text-gray-400">dWallet</span>
+                  <ExplorerLink pubkey={agent.dwallet} />
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-800/50">
+                  <span className="text-xs text-gray-400">Agent PDA</span>
+                  <ExplorerLink pubkey={agent.pda} />
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-800/50">
+                  <span className="text-xs text-gray-400">Trades</span>
+                  <span className="text-xs font-mono">
+                    <span className="text-emerald-400">{agent.trades_approved} approved</span>
+                    {" / "}
+                    <span className="text-red-400">{agent.trades_rejected} rejected</span>
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <RiskBar label="Position Size" current={executor?.has_position ? 5.0 : 0} max={(limits?.max_position_bps ?? 500) / 100} />
+              <RiskBar label="Daily Loss" current={Math.abs(executor?.daily_pnl_pct ?? 0) * 100} max={(limits?.max_daily_loss_bps ?? 300) / 100} />
+              <RiskBar label="Drawdown" current={(executor?.risk?.current_drawdown_pct ?? 0) * 100} max={(limits?.max_drawdown_bps ?? 1000) / 100} />
+            </>
+          )}
+
+          {/* Encrypted limits */}
+          {agent && (
+            <div className="mt-3 p-2.5 bg-violet-500/5 rounded-lg border border-violet-500/10">
+              <div className="text-[10px] text-violet-300 font-semibold mb-1.5">Encrypted Risk Limits (on-chain)</div>
+              <div className="space-y-1 text-[10px]">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">max_position</span>
+                  <span className="text-cyan-400 font-mono">{agent.enc_max_position.slice(0, 12)}...</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">max_daily_loss</span>
+                  <span className="text-cyan-400 font-mono">{agent.enc_max_daily_loss.slice(0, 12)}...</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">max_drawdown</span>
+                  <span className="text-cyan-400 font-mono">{agent.enc_max_drawdown.slice(0, 12)}...</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between items-center py-1.5 border-b border-gray-800/50">
-              <span className="text-xs text-gray-400">Agent PDA</span>
-              <ExplorerLink pubkey={agent.pda} />
-            </div>
-            <div className="flex justify-between items-center py-1.5 border-b border-gray-800/50">
-              <span className="text-xs text-gray-400">Trades</span>
-              <span className="text-xs font-mono">
-                <span className="text-emerald-400">{agent.trades_approved} approved</span>
-                {" / "}
-                <span className="text-red-400">{agent.trades_rejected} rejected</span>
-              </span>
-            </div>
-          </div>
+          )}
         </>
       ) : (
+        /* Disconnected state: explain what dWallet does */
         <>
-          <RiskBar label="Position Size" current={executor?.has_position ? 5.0 : 0} max={limits.max_position_bps / 100} />
-          <RiskBar label="Daily Loss" current={Math.abs(executor?.daily_pnl_pct ?? 0) * 100} max={limits.max_daily_loss_bps / 100} />
-          <RiskBar label="Drawdown" current={(executor?.risk?.current_drawdown_pct ?? 0) * 100} max={limits.max_drawdown_bps / 100} />
-        </>
-      )}
-
-      {/* Encrypted limits */}
-      {agent && (
-        <div className="mt-3 p-2.5 bg-violet-500/5 rounded-lg border border-violet-500/10">
-          <div className="text-[10px] text-violet-300 font-semibold mb-1.5">Encrypted Risk Limits (on-chain)</div>
-          <div className="space-y-1 text-[10px]">
-            <div className="flex justify-between">
-              <span className="text-gray-500">max_position</span>
-              <span className="text-cyan-400 font-mono">{agent.enc_max_position.slice(0, 12)}...</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">max_daily_loss</span>
-              <span className="text-cyan-400 font-mono">{agent.enc_max_daily_loss.slice(0, 12)}...</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">max_drawdown</span>
-              <span className="text-cyan-400 font-mono">{agent.enc_max_drawdown.slice(0, 12)}...</span>
-            </div>
+          <div className="space-y-2 mb-4">
+            <RiskBar label="Position Size" current={2.5} max={5.0} />
+            <RiskBar label="Daily Loss" current={0.8} max={3.0} />
+            <RiskBar label="Drawdown" current={3.2} max={10.0} />
           </div>
-        </div>
+          <p className="text-xs text-gray-500 leading-relaxed mb-3">
+            Risk limits are stored on-chain in the Agent PDA. The dWallet (2PC-MPC) physically
+            cannot sign transactions that exceed these limits -- enforcement is cryptographic, not software.
+          </p>
+        </>
       )}
 
       <div className="mt-3 flex items-center gap-2">
@@ -112,7 +129,7 @@ export default function DWalletCard({
         <div>
           <div className="text-xs text-gray-400">Custody</div>
           <div className="text-xs font-medium text-violet-300">
-            {agent ? "dWallet Active (2PC-MPC)" : "Fallback Mode"}
+            {agent ? "dWallet Active (2PC-MPC)" : connected ? "Fallback Mode" : "2PC-MPC Distributed Key"}
           </div>
         </div>
       </div>

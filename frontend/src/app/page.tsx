@@ -35,6 +35,13 @@ const STEP_ORDER: Exclude<ExecutionStep, "idle" | "complete" | "rejected">[] = [
   "ika_approval",
 ];
 
+// Demo SHAP for when backend is disconnected
+const DEMO_SHAP: Record<string, { value: number; impact: string }> = {
+  rsi_14: { value: 0.0823, impact: "positive" },
+  macd_signal: { value: -0.0612, impact: "negative" },
+  volume_sma_ratio: { value: 0.0445, impact: "positive" },
+};
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -238,6 +245,13 @@ function TradeButton() {
           )}
         </div>
       )}
+
+      {/* Idle hint */}
+      {step === "idle" && (
+        <p className="text-[10px] text-gray-600">
+          Submits a trade proposal through the full pipeline: Encrypt FHE, on-chain risk check, and Ika dWallet approval.
+        </p>
+      )}
     </div>
   );
 }
@@ -246,6 +260,7 @@ export default function Dashboard() {
   const data = useVAPMData();
 
   const shap = data.prediction?.prediction?.shap_explanation;
+  const hasShap = shap && Object.keys(shap).length > 0;
 
   return (
     <main className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto">
@@ -261,12 +276,17 @@ export default function Dashboard() {
       <PriceChart />
 
       {/* Zone 1.75: SHAP Summary (compact top 3 features) */}
-      {shap && Object.keys(shap).length > 0 && (
-        <div className="mb-6 p-5 bg-gray-900 rounded-2xl border border-gray-800">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Top Prediction Drivers
-            </h2>
+      <div className="mb-6 p-5 bg-gray-900 rounded-2xl border border-gray-800">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Top Prediction Drivers
+          </h2>
+          <div className="flex items-center gap-2">
+            {!hasShap && !data.connected && (
+              <span className="text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">
+                Demo data
+              </span>
+            )}
             <a
               href="/model"
               className="text-[10px] text-amber-400 hover:text-amber-300 underline decoration-dotted"
@@ -274,9 +294,9 @@ export default function Dashboard() {
               View all features
             </a>
           </div>
-          <ShapChart shapExplanation={shap} maxFeatures={3} compact />
         </div>
-      )}
+        <ShapChart shapExplanation={hasShap ? shap : (data.connected ? null : DEMO_SHAP)} maxFeatures={3} compact />
+      </div>
 
       {/* Zone 2: Pipeline */}
       <Pipeline
@@ -344,8 +364,16 @@ export default function Dashboard() {
 
       {/* Connection status */}
       {!data.connected && (
-        <div className="fixed bottom-4 right-4 bg-red-500/90 text-white text-xs px-3 py-2 rounded-lg">
-          Backend disconnected -- start with: cd backend && uvicorn main:app --port 8001
+        <div className="fixed bottom-4 right-4 bg-gray-800/90 border border-gray-700 text-gray-300 text-xs px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-gray-500" />
+            <span>
+              Backend offline -- showing demo data
+            </span>
+          </div>
+          <p className="text-[10px] text-gray-500 mt-1">
+            Start with: cd backend && uvicorn main:app --port 8001
+          </p>
         </div>
       )}
     </main>
